@@ -7,6 +7,9 @@ export interface AuthenticatedRequest extends Request {
     firstName?: string;
     lastName?: string;
   };
+  body: any;
+  params: any;
+  query: any;
 }
 
 export interface RequestWithSubscription extends Request {
@@ -22,6 +25,9 @@ export interface RequestWithSubscription extends Request {
     dataRetentionDays: number;
   };
   dataRetentionDate?: Date;
+  body: any;
+  params: any;
+  query: any;
 }
 
 export interface ApiResponse<T = any> {
