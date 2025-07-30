@@ -10,7 +10,7 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export interface RequestWithSubscription extends AuthenticatedRequest {
-  subscription?: {
+  userSubscription?: {
     plan: string;
     status: string;
     dataRetentionDays: number;
