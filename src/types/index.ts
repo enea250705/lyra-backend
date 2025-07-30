@@ -9,7 +9,13 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export interface RequestWithSubscription extends AuthenticatedRequest {
+export interface RequestWithSubscription extends Request {
+  user?: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
   userSubscription?: {
     plan: string;
     status: string;
