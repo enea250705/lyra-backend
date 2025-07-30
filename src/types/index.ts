@@ -9,6 +9,15 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+export interface RequestWithSubscription extends AuthenticatedRequest {
+  subscription?: {
+    plan: string;
+    status: string;
+    dataRetentionDays: number;
+  };
+  dataRetentionDate?: Date;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
