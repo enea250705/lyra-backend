@@ -48,6 +48,19 @@ export const dailyCheckin = async (req: AuthenticatedRequest, res: Response) => 
       return sendError(res, 'User not authenticated', 401);
     }
 
+    // Check if AI is configured
+    if (!deepseekService.isConfigured()) {
+      return sendSuccess(res, {
+        response: "Thanks for checking in! I'm currently being set up and will provide personalized insights soon. Your data has been recorded and you can track your progress in the insights section.",
+        message,
+        mood,
+        energy,
+        sleep,
+        stressLevel,
+        timestamp: new Date().toISOString()
+      }, 'Check-in recorded - AI service not configured');
+    }
+
     const timeContext = getTimeContext();
     const currentStressLevel = stressLevel || assessStressLevel(mood, energy, sleep);
 
@@ -244,6 +257,23 @@ export const chatWithLyra = async (req: AuthenticatedRequest, res: Response) => 
 
     if (!message) {
       return sendError(res, 'Message is required', 400);
+    }
+
+    // Check if AI is configured
+    if (!deepseekService.isConfigured()) {
+      return sendSuccess(res, {
+        response: "I'm currently being set up and will be available soon! For now, I can help you track your mood, sleep, and daily activities. Try asking me about your wellness data or use the other features of the app.",
+        message,
+        conversationHistory: [
+          ...conversationHistory,
+          { role: 'user', content: message },
+          { role: 'assistant', content: "I'm currently being set up and will be available soon! For now, I can help you track your mood, sleep, and daily activities. Try asking me about your wellness data or use the other features of the app." }
+        ],
+        functionType,
+        context: {},
+        actionExecuted: null,
+        timestamp: new Date().toISOString()
+      }, 'AI service not configured - fallback response');
     }
 
     const timeContext = getTimeContext();
