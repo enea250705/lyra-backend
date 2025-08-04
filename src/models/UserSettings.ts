@@ -10,6 +10,10 @@ interface UserSettingsAttributes {
   timezone: string;
   language: string;
   featuresEnabled: Record<string, boolean>;
+  enabledModules: Record<string, boolean>;
+  connectedApis: Record<string, boolean>;
+  voiceStyle: string;
+  name: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,6 +28,10 @@ class UserSettings extends Model<UserSettingsAttributes, UserSettingsCreationAtt
   public timezone!: string;
   public language!: string;
   public featuresEnabled!: Record<string, boolean>;
+  public enabledModules!: Record<string, boolean>;
+  public connectedApis!: Record<string, boolean>;
+  public voiceStyle!: string;
+  public name!: string;
   public createdAt!: Date;
   public updatedAt!: Date;
 }
@@ -70,6 +78,31 @@ UserSettings.init(
         calendar: true,
         finance: true,
       },
+    },
+    enabledModules: {
+      type: DataTypes.JSONB,
+      defaultValue: {
+        finances: false,
+        sleep: true,
+        mood: true,
+        decisions: true,
+      },
+    },
+    connectedApis: {
+      type: DataTypes.JSONB,
+      defaultValue: {
+        googleCalendar: false,
+        appleHealth: false,
+        plaid: false,
+      },
+    },
+    voiceStyle: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'calm',
+    },
+    name: {
+      type: DataTypes.STRING(100),
+      defaultValue: 'User',
     },
     createdAt: {
       type: DataTypes.DATE,

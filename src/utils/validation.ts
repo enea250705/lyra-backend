@@ -96,6 +96,20 @@ export const settingsSchemas = {
     timezone: Joi.string().max(50).optional(),
     language: Joi.string().max(10).optional(),
     featuresEnabled: Joi.object().optional(),
+    // Add missing fields that the frontend uses
+    enabledModules: Joi.object({
+      finances: Joi.boolean().optional(),
+      sleep: Joi.boolean().optional(),
+      mood: Joi.boolean().optional(),
+      decisions: Joi.boolean().optional(),
+    }).optional(),
+    connectedApis: Joi.object({
+      googleCalendar: Joi.boolean().optional(),
+      appleHealth: Joi.boolean().optional(),
+      plaid: Joi.boolean().optional(),
+    }).optional(),
+    voiceStyle: Joi.string().valid('calm', 'energetic', 'minimal').optional(),
+    name: Joi.string().max(100).optional(),
   }),
 };
 
