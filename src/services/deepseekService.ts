@@ -134,13 +134,21 @@ You have full access to and can directly manage:
 
 ## KEY BEHAVIORAL PRINCIPLES
 1. **SPEED**: Respond within 2-3 sentences unless depth is requested
-2. **CONTEXT**: Always reference relevant user data and patterns
+2. **CONTEXT**: Reference relevant user data and patterns ONLY when they actually exist
 3. **ACTION**: Offer to perform tasks directly when possible
 4. **PRIVACY**: User data stays secure, actions require confirmation for sensitive operations
 5. **ADAPTABILITY**: Match user's communication style and emotional state
 6. **WISDOM**: Provide insights that connect different aspects of their life
+7. **HONESTY**: Never pretend to have data or history that doesn't exist - ask questions instead
 
 ## EXAMPLE INTERACTIONS
+
+**For first-time users:**
+- "Hi there! I'm Lyra, your personal AI companion. How are you feeling today?"
+- "Welcome! I'm here to help with mood tracking, insights, and thoughtful conversations. What brings you here?"
+- "Nice to meet you! I can help track your wellbeing, provide insights, and support your goals. What would you like to start with?"
+
+**For users with data:**
 - "Your mood dipped after that $180 dinner expense. Want me to block that restaurant?"
 - "You're most productive at 10 AM. Should I reschedule your 2 PM meeting?"
 - "Haven't journaled in 3 days and energy is low. Quick voice check-in?"
@@ -331,20 +339,40 @@ class DeepSeekService {
       contextualPrompt += `\n- Reference previous conversation points when relevant`;
       contextualPrompt += `\n- End with a clear conclusion or next steps`;
       
-      // Add user context
+      // Add user context - be careful about first-time users
       if (userContext) {
-        contextualPrompt += `\n\n## CURRENT USER STATE:`;
-        if (userContext.mood) contextualPrompt += `\n- Current mood: ${userContext.mood}`;
-        if (userContext.energy) contextualPrompt += `\n- Energy level: ${userContext.energy}/10`;
-        if (userContext.sleep) contextualPrompt += `\n- Last night's sleep: ${userContext.sleep} hours`;
-        if (userContext.recentActivities?.length) {
-          contextualPrompt += `\n- Recent activities: ${userContext.recentActivities.join(', ')}`;
-        }
-        if (userContext.goals?.length) {
-          contextualPrompt += `\n- Current goals: ${userContext.goals.join(', ')}`;
-        }
-        if (userContext.hasRealData) {
-          contextualPrompt += `\n- User has real tracking data available`;
+        // Check if this is a first interaction
+        const isFirstInteraction = conversationHistory.length === 0 || 
+                                   (userContext as any).isFirstInteraction;
+        
+        if (isFirstInteraction) {
+          contextualPrompt += `\n\n## FIRST INTERACTION GUIDELINES:`;
+          contextualPrompt += `\n- This is the user's first conversation with you`;
+          contextualPrompt += `\n- Welcome them warmly and introduce yourself as Lyra`;
+          contextualPrompt += `\n- Do NOT reference any historical data or patterns (none exist yet)`;
+          contextualPrompt += `\n- Ask about their current state rather than assuming`;
+          contextualPrompt += `\n- Focus on getting to know them and their needs`;
+          contextualPrompt += `\n- Be friendly and helpful, but don't pretend to have data you don't have`;
+        } else {
+          contextualPrompt += `\n\n## CURRENT USER STATE:`;
+          if (userContext.mood && userContext.mood !== 'neutral') {
+            contextualPrompt += `\n- Current mood: ${userContext.mood}`;
+          }
+          if (userContext.energy && userContext.energy > 0) {
+            contextualPrompt += `\n- Energy level: ${userContext.energy}/10`;
+          }
+          if (userContext.sleep && userContext.sleep > 0) {
+            contextualPrompt += `\n- Last night's sleep: ${userContext.sleep} hours`;
+          }
+          if (userContext.recentActivities?.length) {
+            contextualPrompt += `\n- Recent activities: ${userContext.recentActivities.join(', ')}`;
+          }
+          if (userContext.goals?.length) {
+            contextualPrompt += `\n- Current goals: ${userContext.goals.join(', ')}`;
+          }
+          if (userContext.hasRealData) {
+            contextualPrompt += `\n- User has real tracking data available`;
+          }
         }
       }
 
