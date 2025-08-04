@@ -66,8 +66,10 @@ const swaggerSpec = swaggerJsDoc(swaggerOptions);
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: config.env === 'development' ? '*' : process.env.FRONTEND_URL,
+  origin: '*', // Allow all origins for now to debug the issue
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 // General middleware
