@@ -1184,6 +1184,13 @@ class AIActionService {
    * Parse user message to extract action and parameters
    */
   parseUserIntent(message: string): { action: string; parameters: any } {
+    if (!message) {
+      return {
+        action: 'generate_insights',
+        parameters: { type: 'overall', timeframe: 'this week' }
+      };
+    }
+    
     const lowerMessage = message.toLowerCase();
     
     // Mood logging

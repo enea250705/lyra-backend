@@ -199,6 +199,10 @@ class DeepSeekService {
   }
 
   private analyzeQuestionType(message: string): 'factual' | 'advice' | 'analysis' | 'creative' | 'problem-solving' {
+    if (!message) {
+      return 'factual';
+    }
+    
     const adviceKeywords = ['should', 'how to', 'what to do', 'recommend', 'suggest', 'advice', 'help me'];
     const analysisKeywords = ['analyze', 'pattern', 'trend', 'insight', 'understand', 'explain', 'why'];
     const creativeKeywords = ['create', 'design', 'generate', 'imagine', 'brainstorm'];
@@ -242,6 +246,10 @@ class DeepSeekService {
   }
 
   private extractIntent(message: string): string {
+    if (!message) {
+      return 'general inquiry';
+    }
+    
     const intentPatterns = [
       { pattern: /want to know|tell me|explain/, intent: 'information seeking' },
       { pattern: /how do I|how can I|help me/, intent: 'assistance seeking' },

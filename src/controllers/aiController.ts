@@ -294,10 +294,10 @@ export const chatWithLyra = async (req: AuthenticatedRequest, res: Response) => 
     let actionResult: any = null;
     
     // If user is requesting an action, execute it
-    if (userIntent.action !== 'generate_insights' || message.toLowerCase().includes('block') || 
-        message.toLowerCase().includes('schedule') || message.toLowerCase().includes('cancel') ||
-        message.toLowerCase().includes('log') || message.toLowerCase().includes('start focus') ||
-        message.toLowerCase().includes('remind me') || message.toLowerCase().includes('spending')) {
+    if (userIntent.action !== 'generate_insights' || (message && message.toLowerCase().includes('block')) || 
+        (message && message.toLowerCase().includes('schedule')) || (message && message.toLowerCase().includes('cancel')) ||
+        (message && message.toLowerCase().includes('log')) || (message && message.toLowerCase().includes('start focus')) ||
+        (message && message.toLowerCase().includes('remind me')) || (message && message.toLowerCase().includes('spending'))) {
       
       try {
         // Execute the action
