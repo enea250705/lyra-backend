@@ -96,7 +96,7 @@ export const settingsSchemas = {
     timezone: Joi.string().max(50).optional(),
     language: Joi.string().max(10).optional(),
     featuresEnabled: Joi.object().optional(),
-    // Add missing fields that the frontend uses
+    // Frontend field names
     enabledModules: Joi.object({
       finances: Joi.boolean().optional(),
       sleep: Joi.boolean().optional(),

@@ -33,6 +33,9 @@ import webhookRoutes from './routes/webhookRoutes';
 
 const app = express();
 
+// Trust proxy for rate limiting (fixes X-Forwarded-For header warning)
+app.set('trust proxy', 1);
+
 // Swagger configuration
 const swaggerOptions = {
   definition: {
