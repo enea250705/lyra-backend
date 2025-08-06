@@ -30,6 +30,7 @@ import subscriptionRoutes from './routes/subscriptionRoutes';
 import interventionRoutes from './routes/interventionRoutes';
 import promptRoutes from './routes/promptRoutes';
 import webhookRoutes from './routes/webhookRoutes';
+import chatRoutes from './routes/chatRoutes';
 
 const app = express();
 
@@ -116,6 +117,7 @@ apiRouter.use('/insights', insightsRoutes);
 apiRouter.use('/weather-mood', weatherMoodRoutes);
 apiRouter.use('/subscription', subscriptionRoutes);
 apiRouter.use('/intervention', interventionRoutes);
+apiRouter.use('/chat', chatRoutes);
 
 app.use(`/api/${config.apiVersion}`, apiRouter);
 

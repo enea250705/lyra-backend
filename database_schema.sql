@@ -195,6 +195,21 @@ CREATE TABLE user_settings (
 -- Create unique index for user settings
 CREATE UNIQUE INDEX idx_user_settings_user_id ON user_settings(user_id);
 
+-- Chat messages table
+CREATE TABLE chat_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    sender VARCHAR(10) NOT NULL CHECK (sender IN ('user', 'lyra')),
+    is_voice BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for chat messages
+CREATE INDEX idx_chat_messages_user_id ON chat_messages(user_id);
+CREATE INDEX idx_chat_messages_created_at ON chat_messages(created_at);
+CREATE INDEX idx_chat_messages_sender ON chat_messages(sender);
+
 -- Usage analytics table
 CREATE TABLE usage_analytics (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
