@@ -12,6 +12,7 @@ import {
 import { authenticate } from '../middleware/auth';
 import { validateBody, validateQuery } from '../middleware/validation';
 import { notificationSettingsSchemas, paginationSchema } from '../utils/validation';
+import Joi from 'joi';
 
 const router = Router();
 
@@ -152,6 +153,14 @@ router.get('/settings', authenticate, getNotificationSettings);
  *         description: Notification settings updated successfully
  */
 router.put('/settings', authenticate, validateBody(notificationSettingsSchemas.update), updateNotificationSettings);
+
+// Test sender: create a notification and trigger push
+const sendSchema = Joi.object({
+  title: Joi.string().max(255).required(),
+  body: Joi.string().max(1000).required(),
+  type: Joi.string().max(50).default('generic'),
+});
+router.post('/send', authenticate, validateBody(sendSchema), createNotification);
 
 /**
  * @swagger

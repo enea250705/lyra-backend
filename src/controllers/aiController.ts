@@ -293,48 +293,44 @@ export const chatWithLyra = async (req: AuthenticatedRequest, res: Response) => 
     let response: string;
     let actionResult: any = null;
     
-    // If user is requesting an action, execute it
-    if (userIntent.action !== 'generate_insights' || (message && message.toLowerCase().includes('block')) || 
-        (message && message.toLowerCase().includes('schedule')) || (message && message.toLowerCase().includes('cancel')) ||
-        (message && message.toLowerCase().includes('log')) || (message && message.toLowerCase().includes('start focus')) ||
-        (message && message.toLowerCase().includes('remind me')) || (message && message.toLowerCase().includes('spending'))) {
+    // Always try to execute actions first, then fall back to conversation
+    try {
+      // Execute the action
+      const actionContext = {
+        userId,
+        userEmail: req.user?.email || '',
+        userProfile: req.user || {},
+        req
+      };
       
-      try {
-        // Execute the action
-        const actionContext = {
-          userId,
-          userEmail: req.user?.email || '',
-          userProfile: req.user || {},
-          req
-        };
+      actionResult = await aiActionService.executeAction(
+        userIntent.action,
+        userIntent.parameters,
+        actionContext
+      );
+      
+      // If action requires confirmation, ask for it
+      if (actionResult.requiresConfirmation) {
+        response = actionResult.confirmationPrompt || actionResult.message;
+      } else if (actionResult.success) {
+        // Action was executed successfully
+        response = actionResult.message;
         
-        actionResult = await aiActionService.executeAction(
-          userIntent.action,
-          userIntent.parameters,
-          actionContext
-        );
-        
-        // If action requires confirmation, ask for it
-        if (actionResult.requiresConfirmation) {
-          response = actionResult.confirmationPrompt || actionResult.message;
-        } else {
-          // Action was executed successfully
+        // Add a natural AI response about the action
+        try {
+          const aiResponse = await deepseekService.generateResponse(
+            `I just ${actionResult.action.replace('_', ' ')} for the user. ${actionResult.message}. Please provide a brief, supportive follow-up response that acknowledges the action and offers additional help or insights.`,
+            conversationHistory,
+            userContext,
+            functionType
+          );
+          response = `${actionResult.message}\n\n${aiResponse}`;
+        } catch (aiError) {
+          // If AI response fails, just use the action result
           response = actionResult.message;
-          
-          // Add a natural AI response about the action
-          if (actionResult.success) {
-            const aiResponse = await deepseekService.generateResponse(
-              `I just ${actionResult.action.replace('_', ' ')} for the user. ${actionResult.message}. Please provide a brief, supportive follow-up response.`,
-              conversationHistory,
-              userContext,
-              functionType
-            );
-            response = `${actionResult.message}\n\n${aiResponse}`;
-          }
         }
-      } catch (actionError) {
-        logger.error('Action execution error:', actionError);
-        // Fall back to regular chat if action fails
+      } else {
+        // Action failed, fall back to conversation
         response = await deepseekService.generateResponse(
           message,
           conversationHistory,
@@ -342,14 +338,20 @@ export const chatWithLyra = async (req: AuthenticatedRequest, res: Response) => 
           functionType
         );
       }
-    } else {
-      // Regular conversation - no specific action detected
-      const { response: chatResponse, updatedHistory } = await deepseekService.continueConversation(
-        message,
-        conversationHistory,
-        userContext
-      );
-      response = chatResponse;
+    } catch (actionError) {
+      console.error('Action execution error:', actionError);
+      // Fall back to regular chat if action fails
+      try {
+        response = await deepseekService.generateResponse(
+          message,
+          conversationHistory,
+          userContext,
+          functionType
+        );
+      } catch (chatError) {
+        console.error('Chat generation error:', chatError);
+        response = "I'm having trouble processing your request right now. Please try again in a moment, or you can use the other features of the app to track your mood, sleep, and activities.";
+      }
     }
 
     // Update conversation history
@@ -368,13 +370,14 @@ export const chatWithLyra = async (req: AuthenticatedRequest, res: Response) => 
       actionExecuted: actionResult ? {
         action: actionResult.action,
         success: actionResult.success,
-        requiresConfirmation: actionResult.requiresConfirmation
+        requiresConfirmation: actionResult.requiresConfirmation,
+        data: actionResult.data
       } : null,
       timestamp: new Date().toISOString()
     }, 'Chat response generated successfully');
 
   } catch (error) {
-    logger.error('Chat with Lyra error:', error);
+    console.error('Chat with Lyra error:', error);
     sendError(res, 'Failed to generate chat response', 500);
   }
 };

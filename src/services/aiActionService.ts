@@ -14,6 +14,8 @@ import googleCalendarService from './googleCalendarService';
 import savingsCounterService from './savingsCounterService';
 import SavingsRecord from '../models/SavingsRecord';
 import Subscription from '../models/Subscription';
+import { Op } from 'sequelize';
+import sequelize from '../config/database';
 
 interface AIActionContext {
   userId: string;
@@ -143,19 +145,16 @@ class AIActionService {
         case 'update_privacy_settings':
           return await this.updatePrivacySettings(userId, parameters);
         
+        // DEFAULT: GENERAL CONVERSATION
         default:
-          return {
-            success: false,
-            action,
-            message: `I don't know how to perform the action: ${action}. Let me know what you'd like me to do and I'll try to help!`
-          };
+          return await this.generateInsights(userId, parameters);
       }
     } catch (error) {
-      logger.error('AI Action Service Error:', error);
+      console.error(`Error executing action ${action}:`, error);
       return {
         success: false,
         action,
-        message: `I encountered an error while trying to ${action}. Let me try again or we can approach this differently.`
+        message: `I'm sorry, I couldn't complete that action. Please try again or ask me something else.`,
       };
     }
   }
@@ -936,25 +935,51 @@ class AIActionService {
     }
     
     try {
+      // For savings reports, the amount is the saved amount
+      const savedAmount = parseFloat(amount) || 0;
+      const actualAmount = parseFloat(originalAmount) || savedAmount;
+      
       const savings = await SavingsRecord.create({
         userId,
-        amount: parseFloat(amount) || 0,
+        amount: savedAmount, // This is the amount saved
         reason,
         category,
-        originalAmount: parseFloat(originalAmount) || parseFloat(amount) || 0,
-        savedAmount: Math.max(0, parseFloat(originalAmount) - parseFloat(amount)),
-        triggerType,
+        originalAmount: actualAmount, // What would have been spent
+        savedAmount: savedAmount, // How much was saved
+        triggerType: triggerType || 'ai_chat',
         metadata: {
           source: 'ai_chat',
           timestamp: new Date().toISOString(),
+          reportedByUser: true,
         },
       });
+
+      // Get today's total savings to show the updated amount
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const todaySavings = await SavingsRecord.findOne({
+        where: { 
+          userId,
+          createdAt: {
+            [Op.between]: [todayStart, todayEnd]
+          }
+        },
+        attributes: [
+          [sequelize.fn('SUM', sequelize.col('saved_amount')), 'today_total']
+        ],
+        raw: true,
+      });
+
+      const todayTotal = parseFloat((todaySavings as any)?.today_total || '0');
 
       return {
         success: true,
         action: 'record_savings',
         data: savings,
-        message: `🎉 Great job! I've recorded €${savings.savedAmount.toFixed(2)} in savings. ${reason}`
+        message: `🎉 Excellent! I've recorded €${savedAmount.toFixed(2)} in savings for today. ${reason}. Your total savings for today are now €${todayTotal.toFixed(2)}! 💰`
       };
     } catch (error) {
       logger.error('Error recording savings:', error);
@@ -1193,8 +1218,8 @@ class AIActionService {
     
     const lowerMessage = message.toLowerCase();
     
-    // Mood logging
-    if (lowerMessage.includes('log my mood') || lowerMessage.includes('set my mood')) {
+    // MOOD & WELLBEING ACTIONS
+    if (lowerMessage.includes('log my mood') || lowerMessage.includes('set my mood') || lowerMessage.includes('i feel')) {
       const moodMatch = lowerMessage.match(/mood.*?(\d+)/);
       const moodValue = moodMatch ? parseInt(moodMatch[1]) : 5;
       
@@ -1207,8 +1232,43 @@ class AIActionService {
       };
     }
     
-    // Focus session
-    if (lowerMessage.includes('start focus') || lowerMessage.includes('begin focus')) {
+    // SLEEP TRACKING
+    if (lowerMessage.includes('log sleep') || lowerMessage.includes('sleep') || lowerMessage.includes('bedtime')) {
+      const durationMatch = lowerMessage.match(/(\d+(?:\.\d+)?)\s*hours?/);
+      const qualityMatch = lowerMessage.match(/quality.*?(\d+)/);
+      
+      return {
+        action: 'log_sleep',
+        parameters: { 
+          duration: durationMatch ? parseFloat(durationMatch[1]) : 8,
+          quality: qualityMatch ? parseInt(qualityMatch[1]) : 7,
+          notes: message 
+        }
+      };
+    }
+    
+    // ENERGY TRACKING
+    if (lowerMessage.includes('energy') || lowerMessage.includes('energy level')) {
+      const energyMatch = lowerMessage.match(/(\d+)/);
+      return {
+        action: 'log_energy',
+        parameters: { 
+          energyLevel: energyMatch ? parseInt(energyMatch[1]) : 5,
+          notes: message 
+        }
+      };
+    }
+    
+    // JOURNAL ENTRIES
+    if (lowerMessage.includes('journal') || lowerMessage.includes('write') || lowerMessage.includes('reflect')) {
+      return {
+        action: 'create_journal_entry',
+        parameters: { content: message, prompt: 'User reflection' }
+      };
+    }
+    
+    // FOCUS SESSIONS
+    if (lowerMessage.includes('start focus') || lowerMessage.includes('begin focus') || lowerMessage.includes('focus session')) {
       const durationMatch = lowerMessage.match(/(\d+)\s*minutes?/);
       const duration = durationMatch ? parseInt(durationMatch[1]) : 25;
       
@@ -1218,7 +1278,7 @@ class AIActionService {
       };
     }
     
-    // Spending analysis
+    // FINANCIAL ACTIONS
     if (lowerMessage.includes('spending') || lowerMessage.includes('expenses') || 
         lowerMessage.includes('money') || lowerMessage.includes('budget') ||
         lowerMessage.includes('financial') || lowerMessage.includes('analyze')) {
@@ -1228,88 +1288,74 @@ class AIActionService {
       };
     }
     
-    // Block merchant
-    if (lowerMessage.includes('block') && (lowerMessage.includes('merchant') || lowerMessage.includes('store'))) {
-      const merchantMatch = lowerMessage.match(/block (.+?) (merchant|store)/);
-      const merchantName = merchantMatch ? merchantMatch[1] : 'unknown merchant';
+    // SAVINGS ACTIONS - Enhanced to detect various savings mentions
+    if (lowerMessage.includes('save') || lowerMessage.includes('savings') || lowerMessage.includes('money saved') || 
+        lowerMessage.includes('saved me') || lowerMessage.includes('i saved') || lowerMessage.includes('saved €') ||
+        lowerMessage.includes('saved $') || lowerMessage.includes('saved') && /\d+/.test(lowerMessage)) {
       
-      return {
-        action: 'block_merchant',
-        parameters: { merchantName, reason: 'User requested block' }
-      };
-    }
-    
-    // Savings tracking intents
-    if (lowerMessage.includes('cancelled') && (lowerMessage.includes('subscription') || lowerMessage.includes('service'))) {
-      const subscriptionMatch = lowerMessage.match(/cancelled (.+?)(?:\s|$)/);
-      const amountMatch = lowerMessage.match(/€?(\d+(?:\.\d{2})?)/);
+      // Enhanced regex to capture various savings formats
+      const amountMatch = lowerMessage.match(/€?(\d+(?:\.\d{2})?)/) || 
+                         lowerMessage.match(/\$?(\d+(?:\.\d{2})?)/) ||
+                         lowerMessage.match(/saved\s+€?(\d+(?:\.\d{2})?)/i) ||
+                         lowerMessage.match(/saved\s+\$?(\d+(?:\.\d{2})?)/i) ||
+                         lowerMessage.match(/saved\s+me\s+€?(\d+(?:\.\d{2})?)/i) ||
+                         lowerMessage.match(/saved\s+me\s+\$?(\d+(?:\.\d{2})?)/i) ||
+                         lowerMessage.match(/i\s+saved\s+€?(\d+(?:\.\d{2})?)/i) ||
+                         lowerMessage.match(/i\s+saved\s+\$?(\d+(?:\.\d{2})?)/i);
       
-      return {
-        action: 'confirm_subscription_cancelled',
-        parameters: { 
-          subscriptionName: subscriptionMatch ? subscriptionMatch[1] : 'subscription',
-          monthlyAmount: amountMatch ? parseFloat(amountMatch[1]) : 10,
-          reason: 'No longer needed'
+      const amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
+      
+      // Extract reason from the message
+      let reason = 'User reported savings';
+      if (lowerMessage.includes('coffee') || lowerMessage.includes('cafe')) {
+        reason = 'Skipped expensive coffee purchase';
+      } else if (lowerMessage.includes('lunch') || lowerMessage.includes('dinner') || lowerMessage.includes('food')) {
+        reason = 'Saved on food expenses';
+      } else if (lowerMessage.includes('shopping') || lowerMessage.includes('buy') || lowerMessage.includes('purchase')) {
+        reason = 'Avoided impulse purchase';
+      } else if (lowerMessage.includes('subscription') || lowerMessage.includes('service')) {
+        reason = 'Cancelled unnecessary subscription';
+      } else if (lowerMessage.includes('transport') || lowerMessage.includes('uber') || lowerMessage.includes('taxi')) {
+        reason = 'Saved on transportation';
+      } else if (lowerMessage.includes('entertainment') || lowerMessage.includes('movie') || lowerMessage.includes('game')) {
+        reason = 'Saved on entertainment';
+      } else {
+        // Try to extract a more specific reason from the message
+        const reasonMatch = lowerMessage.match(/saved\s+(?:me\s+)?(?:€?\d+(?:\.\d{2})?\s+)?(?:by\s+)?(.+?)(?:\s+€?\d+(?:\.\d{2})?)?$/i);
+        if (reasonMatch && reasonMatch[1].length > 3) {
+          reason = reasonMatch[1].trim();
         }
-      };
-    }
-    
-    if (lowerMessage.includes('avoided') || lowerMessage.includes('didn\'t buy') || lowerMessage.includes('skipped buying')) {
-      const itemMatch = lowerMessage.match(/(?:avoided|didn't buy|skipped buying) (.+?)(?:\s|$)/);
-      const amountMatch = lowerMessage.match(/€?(\d+(?:\.\d{2})?)/);
+      }
+      
+      // Determine category based on content
+      let category = 'other';
+      if (lowerMessage.includes('coffee') || lowerMessage.includes('cafe') || lowerMessage.includes('food') || lowerMessage.includes('lunch') || lowerMessage.includes('dinner')) {
+        category = 'food';
+      } else if (lowerMessage.includes('shopping') || lowerMessage.includes('buy') || lowerMessage.includes('purchase') || lowerMessage.includes('store')) {
+        category = 'shopping';
+      } else if (lowerMessage.includes('subscription') || lowerMessage.includes('service')) {
+        category = 'subscription';
+      } else if (lowerMessage.includes('transport') || lowerMessage.includes('uber') || lowerMessage.includes('taxi') || lowerMessage.includes('bus')) {
+        category = 'transport';
+      } else if (lowerMessage.includes('entertainment') || lowerMessage.includes('movie') || lowerMessage.includes('game') || lowerMessage.includes('concert')) {
+        category = 'entertainment';
+      }
       
       return {
-        action: 'confirm_avoided_purchase',
+        action: 'record_savings',
         parameters: {
-          itemName: itemMatch ? itemMatch[1] : 'item',
-          originalAmount: amountMatch ? parseFloat(amountMatch[1]) : 50,
-          reason: 'Following AI advice'
+          amount: amount,
+          originalAmount: amount, // For savings, the saved amount is the same as the amount
+          reason: reason,
+          category: category,
+          triggerType: 'ai_chat'
         }
       };
     }
     
-    if (lowerMessage.includes('cheaper') || lowerMessage.includes('alternative') || lowerMessage.includes('instead')) {
-      const originalMatch = lowerMessage.match(/instead of (.+?),/);
-      const alternativeMatch = lowerMessage.match(/chose (.+?)(?:\s|$)/);
-      
-      return {
-        action: 'confirm_alternative_used',
-        parameters: {
-          originalItem: originalMatch ? originalMatch[1] : 'expensive option',
-          alternativeUsed: alternativeMatch ? alternativeMatch[1] : 'cheaper option',
-          originalPrice: 50,
-          alternativePrice: 30,
-          reason: 'Smart money choice'
-        }
-      };
-    }
-    
-    if (lowerMessage.includes('savings') && (lowerMessage.includes('how much') || lowerMessage.includes('analysis') || lowerMessage.includes('potential'))) {
-      return {
-        action: 'get_savings_potential',
-        parameters: { timeframe: 'month' }
-      };
-    }
-    
-    // Calendar view
-    if (lowerMessage.includes('calendar') || lowerMessage.includes('appointments') || lowerMessage.includes('schedule')) {
-      let timeframe = 'today';
-      if (lowerMessage.includes('tomorrow')) timeframe = 'tomorrow';
-      else if (lowerMessage.includes('week')) timeframe = 'week';
-      else if (lowerMessage.includes('month')) timeframe = 'month';
-      
-      return {
-        action: 'view_calendar',
-        parameters: { timeframe }
-      };
-    }
-    
-    // Create appointment
-    if (lowerMessage.includes('create appointment') || lowerMessage.includes('schedule appointment') || 
-        lowerMessage.includes('book appointment') || lowerMessage.includes('add appointment')) {
-      
-      // Extract title, date, time from message
-      const titleMatch = lowerMessage.match(/(?:create|schedule|book|add).*?appointment.*?(?:for|called|titled)?\s*["']?([^"']+)["']?/);
+    // CALENDAR ACTIONS
+    if (lowerMessage.includes('appointment') || lowerMessage.includes('schedule') || lowerMessage.includes('calendar')) {
+      const titleMatch = lowerMessage.match(/(?:create|schedule|book|add).*?(?:appointment|meeting).*?(?:for|called|titled)?\s*["']?([^"']+)["']?/);
       const timeMatch = lowerMessage.match(/at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
       const dateMatch = lowerMessage.match(/(?:on\s+)?(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\/\d{1,2})/i);
       
@@ -1323,45 +1369,38 @@ class AIActionService {
       };
     }
     
-    // Reschedule appointment
-    if (lowerMessage.includes('reschedule') || lowerMessage.includes('move') || lowerMessage.includes('change')) {
-      const titleMatch = lowerMessage.match(/(?:reschedule|move|change).*?["']?([^"']+)["']?/);
-      const timeMatch = lowerMessage.match(/to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
-      const dateMatch = lowerMessage.match(/(?:to\s+)?(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\/\d{1,2})/i);
-      
+    // SETTINGS & PREFERENCES
+    if (lowerMessage.includes('settings') || lowerMessage.includes('preferences') || lowerMessage.includes('configure')) {
       return {
-        action: 'reschedule_appointment',
-        parameters: {
-          eventTitle: titleMatch ? titleMatch[1].trim() : undefined,
-          newDate: dateMatch ? dateMatch[1] : undefined,
-          newTime: timeMatch ? timeMatch[1] : undefined
-        }
+        action: 'update_user_settings',
+        parameters: { settings: message }
       };
     }
     
-    // Cancel appointment
-    if (lowerMessage.includes('cancel') || lowerMessage.includes('delete')) {
-      const titleMatch = lowerMessage.match(/(?:cancel|delete).*?["']?([^"']+)["']?/);
-      const reasonMatch = lowerMessage.match(/because\s+(.+)$/i);
-      
+    // INSIGHTS & ANALYTICS
+    if (lowerMessage.includes('insights') || lowerMessage.includes('analysis') || lowerMessage.includes('trends')) {
       return {
-        action: 'cancel_appointment',
-        parameters: {
-          eventTitle: titleMatch ? titleMatch[1].trim() : undefined,
-          reason: reasonMatch ? reasonMatch[1].trim() : undefined
-        }
+        action: 'generate_insights',
+        parameters: { type: 'overall', timeframe: 'this week' }
       };
     }
     
-    // Set reminder
-    if (lowerMessage.includes('remind me') || lowerMessage.includes('set reminder')) {
+    // REMINDERS
+    if (lowerMessage.includes('remind') || lowerMessage.includes('reminder')) {
+      const timeMatch = lowerMessage.match(/at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+      const dateMatch = lowerMessage.match(/(?:on\s+)?(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\/\d{1,2})/i);
+      
       return {
         action: 'set_reminder',
-        parameters: { message: message, datetime: new Date(Date.now() + 60 * 60 * 1000) }
+        parameters: {
+          message: message,
+          time: timeMatch ? timeMatch[1] : '10:00 AM',
+          date: dateMatch ? dateMatch[1] : 'today'
+        }
       };
     }
     
-    // Default: generate insights
+    // DEFAULT: GENERAL CONVERSATION
     return {
       action: 'generate_insights',
       parameters: { type: 'overall', timeframe: 'this week' }

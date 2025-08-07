@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from '../types';
 import Notification from '../models/Notification';
 import NotificationSettings from '../models/NotificationSettings';
 import logger from '../utils/logger';
+import { sendPushToUser } from '../services/pushService';
 
 export const getNotifications = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -218,6 +219,13 @@ export const createNotification = async (req: Request, res: Response): Promise<v
     });
 
     logger.info(`Notification created for user: ${userId}`);
+
+    // Try to send a push notification to user's active devices
+    try {
+      await sendPushToUser(userId, { title, body, data: { type, notificationId: notification.id } });
+    } catch (e) {
+      logger.warn('Push delivery failed (non-fatal):', e);
+    }
 
     sendSuccess(res, {
       id: notification.id,

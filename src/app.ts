@@ -31,6 +31,9 @@ import interventionRoutes from './routes/interventionRoutes';
 import promptRoutes from './routes/promptRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 import chatRoutes from './routes/chatRoutes';
+import plaidRoutes from './routes/plaidRoutes';
+import savingsRoutes from './routes/savingsRoutes';
+import pushRoutes from './routes/pushRoutes';
 
 const app = express();
 
@@ -111,6 +114,7 @@ apiRouter.use('/sleep', sleepRoutes);
 apiRouter.use('/focus', focusRoutes);
 apiRouter.use('/journal', journalRoutes);
 apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/notifications', pushRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/insights', insightsRoutes);
@@ -118,6 +122,8 @@ apiRouter.use('/weather-mood', weatherMoodRoutes);
 apiRouter.use('/subscription', subscriptionRoutes);
 apiRouter.use('/intervention', interventionRoutes);
 apiRouter.use('/chat', chatRoutes);
+apiRouter.use('/plaid', plaidRoutes);
+apiRouter.use('/savings', savingsRoutes);
 
 app.use(`/api/${config.apiVersion}`, apiRouter);
 
@@ -151,6 +157,12 @@ const startServer = async () => {
     if (config.env === 'development') {
       await sequelize.sync({ force: true, alter: true });
       logger.info('Database synchronized (tables recreated)');
+    }
+
+    // Optional safe schema sync in non-development environments for additive changes (e.g., new tables)
+    if (config.env !== 'development' && process.env.DB_SYNC_ALTER === 'true') {
+      await sequelize.sync({ alter: true });
+      logger.info('Database schema synchronized with alter=true');
     }
     
     app.listen(config.port, () => {

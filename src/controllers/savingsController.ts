@@ -26,6 +26,10 @@ class SavingsController {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
+      // Get today's start and end
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
       // Get total savings
       const totalSavings = await SavingsRecord.findOne({
         where: { userId },
@@ -47,6 +51,21 @@ class SavingsController {
         attributes: [
           [sequelize.fn('SUM', sequelize.col('saved_amount')), 'monthly_total'],
           [sequelize.fn('COUNT', sequelize.col('id')), 'monthly_count']
+        ],
+        raw: true,
+      });
+
+      // Get today's savings
+      const todaySavings = await SavingsRecord.findOne({
+        where: { 
+          userId,
+          createdAt: {
+            [Op.between]: [todayStart, todayEnd]
+          }
+        },
+        attributes: [
+          [sequelize.fn('SUM', sequelize.col('saved_amount')), 'today_total'],
+          [sequelize.fn('COUNT', sequelize.col('id')), 'today_count']
         ],
         raw: true,
       });
@@ -101,6 +120,10 @@ class SavingsController {
           amount: parseFloat((monthlySavings as any)?.monthly_total || '0'),
           count: parseInt((monthlySavings as any)?.monthly_count || '0'),
           target: 100, // Default monthly target - could be user configurable
+        },
+        today: {
+          amount: parseFloat((todaySavings as any)?.today_total || '0'),
+          count: parseInt((todaySavings as any)?.today_count || '0'),
         },
         byCategory: savingsByCategory,
         byTrigger: savingsByTrigger,
