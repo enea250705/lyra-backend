@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response';
 import ChatMessage from '../models/ChatMessage';
 import { Op } from 'sequelize';

@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import Subscription, { SubscriptionPlan, SubscriptionStatus } from '../models/Subscription';
 import { sendError } from '../utils/response';
 import logger from '../utils/logger';
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest, RequestWithSubscription as RequestWithSubscriptionType } from '../types';
 
-export interface RequestWithSubscription extends AuthenticatedRequest {
+export interface RequestWithSubscription extends AuthenticatedRequest, RequestWithSubscriptionType {
   subscription?: Subscription;
 }
 

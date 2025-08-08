@@ -35,7 +35,7 @@ interface PlaidAccountData {
 }
 
 class PlaidService {
-  private client: PlaidApi;
+  private client: PlaidApi | null = null;
 
   constructor() {
     const config: PlaidConfig = {
@@ -45,7 +45,10 @@ class PlaidService {
     };
 
     if (!config.clientId || !config.secret) {
-      throw new Error('Plaid credentials are required. Set PLAID_CLIENT_ID and PLAID_SECRET_KEY environment variables.');
+      // No credentials provided: keep client null and let callers handle gracefully
+      this.client = null;
+      logger.warn('Plaid disabled: missing PLAID_CLIENT_ID/PLAID_SECRET_KEY');
+      return;
     }
 
     const configuration = new Configuration({
@@ -78,6 +81,7 @@ class PlaidService {
    * Create a link token for Plaid Link initialization
    */
   async createLinkToken(request: PlaidLinkTokenRequest): Promise<string> {
+    if (!this.client) throw new Error('Plaid is not configured on this server.');
     try {
       const response = await this.client.linkTokenCreate({
         user: {
@@ -102,6 +106,7 @@ class PlaidService {
    * Exchange public token for access token
    */
   async exchangePublicToken(publicToken: string): Promise<string> {
+    if (!this.client) throw new Error('Plaid is not configured on this server.');
     try {
       const response = await this.client.itemPublicTokenExchange({
         public_token: publicToken,
@@ -119,6 +124,7 @@ class PlaidService {
    * Get accounts for a user
    */
   async getAccounts(accessToken: string): Promise<PlaidAccountData[]> {
+    if (!this.client) throw new Error('Plaid is not configured on this server.');
     try {
       const response = await this.client.accountsGet({
         access_token: accessToken,
@@ -153,6 +159,7 @@ class PlaidService {
     endDate: string,
     accountIds?: string[]
   ): Promise<PlaidTransactionData[]> {
+    if (!this.client) throw new Error('Plaid is not configured on this server.');
     try {
       const request = {
         access_token: accessToken,
@@ -185,10 +192,16 @@ class PlaidService {
    * Get recent transactions (last 30 days)
    */
   async getRecentTransactions(accessToken: string, accountIds?: string[]): Promise<PlaidTransactionData[]> {
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    if (!this.client) throw new Error('Plaid is not configured on this server.');
+    try {
+      const endDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    return this.getTransactions(accessToken, startDate, endDate, accountIds);
+      return this.getTransactions(accessToken, startDate, endDate, accountIds);
+    } catch (error: any) {
+      logger.error('Error getting recent transactions:', error);
+      throw new Error(`Failed to get recent transactions: ${error.response?.data?.error_message || error.message}`);
+    }
   }
 
   /**
@@ -379,6 +392,7 @@ class PlaidService {
    * Remove item (disconnect bank account)
    */
   async removeItem(accessToken: string): Promise<void> {
+    if (!this.client) throw new Error('Plaid is not configured on this server.');
     try {
       await this.client.itemRemove({
         access_token: accessToken,
