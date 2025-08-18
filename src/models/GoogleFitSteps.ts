@@ -100,6 +100,7 @@ GoogleFitSteps.init(
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: 'user_id',
       references: {
         model: User,
         key: 'id',
@@ -138,14 +139,14 @@ GoogleFitSteps.init(
     indexes: [
       {
         unique: true,
-        fields: ['userId', 'date']
+        fields: ['user_id', 'date']
       }
     ]
   }
 );
 
 // Define associations
-GoogleFitSteps.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-User.hasMany(GoogleFitSteps, { foreignKey: 'userId', as: 'googleFitSteps' });
+GoogleFitSteps.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+User.hasMany(GoogleFitSteps, { foreignKey: 'user_id', as: 'googleFitSteps' });
 
 export default GoogleFitSteps; 

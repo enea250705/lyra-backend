@@ -116,6 +116,7 @@ GoogleFitHeartRate.init(
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: 'user_id',
       references: {
         model: User,
         key: 'id',
@@ -151,7 +152,7 @@ GoogleFitHeartRate.init(
 );
 
 // Define associations
-GoogleFitHeartRate.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-User.hasMany(GoogleFitHeartRate, { foreignKey: 'userId', as: 'googleFitHeartRates' });
+GoogleFitHeartRate.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+User.hasMany(GoogleFitHeartRate, { foreignKey: 'user_id', as: 'googleFitHeartRates' });
 
 export default GoogleFitHeartRate; 

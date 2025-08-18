@@ -190,6 +190,7 @@ GoogleFitSyncStatus.init(
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: 'user_id',
       references: {
         model: User,
         key: 'id',
@@ -238,14 +239,14 @@ GoogleFitSyncStatus.init(
     indexes: [
       {
         unique: true,
-        fields: ['userId', 'dataType']
+        fields: ['user_id', 'data_type']
       }
     ]
   }
 );
 
 // Define associations
-GoogleFitSyncStatus.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-User.hasMany(GoogleFitSyncStatus, { foreignKey: 'userId', as: 'googleFitSyncStatuses' });
+GoogleFitSyncStatus.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+User.hasMany(GoogleFitSyncStatus, { foreignKey: 'user_id', as: 'googleFitSyncStatuses' });
 
 export default GoogleFitSyncStatus; 

@@ -190,6 +190,7 @@ GoogleFitSleep.init(
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: 'user_id',
       references: {
         model: User,
         key: 'id',
@@ -232,14 +233,14 @@ GoogleFitSleep.init(
     indexes: [
       {
         unique: true,
-        fields: ['userId', 'date']
+        fields: ['user_id', 'date']
       }
     ]
   }
 );
 
 // Define associations
-GoogleFitSleep.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-User.hasMany(GoogleFitSleep, { foreignKey: 'userId', as: 'googleFitSleep' });
+GoogleFitSleep.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+User.hasMany(GoogleFitSleep, { foreignKey: 'user_id', as: 'googleFitSleep' });
 
 export default GoogleFitSleep; 
