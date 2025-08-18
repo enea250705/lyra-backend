@@ -104,6 +104,15 @@ app.get('/health', (req, res) => {
 
 // API routes
 const apiRouter = express.Router();
+// Versioned health endpoint matching /health
+apiRouter.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    service: 'lyra-ai-backend',
+    version: '1.0.0',
+  });
+});
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/ai', aiRoutes);
 apiRouter.use('/prompts', promptRoutes);

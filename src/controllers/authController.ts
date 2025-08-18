@@ -6,6 +6,11 @@ import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
+import Notification from '../models/Notification';
+import NotificationSettings from '../models/NotificationSettings';
+import CalendarEvent from '../models/CalendarEvent';
+import ChatMessage from '../models/ChatMessage';
+import JournalEntry from '../models/JournalEntry';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -230,5 +235,28 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
   } catch (error) {
     logger.error('Update profile error:', error);
     sendError(res, 'Internal server error', 500);
+  }
+};
+
+export const deleteAccount = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+    if (!userId) {
+      sendError(res, 'Unauthorized', 401);
+      return;
+    }
+    await Promise.all([
+      Notification.destroy({ where: { userId } }),
+      NotificationSettings.destroy({ where: { userId } }),
+      CalendarEvent.destroy({ where: { userId } }),
+      ChatMessage.destroy({ where: { userId } }),
+      JournalEntry.destroy({ where: { userId } }),
+    ]);
+    await User.destroy({ where: { id: userId } });
+    sendSuccess(res, { deleted: true }, 'Account deleted successfully');
+  } catch (error) {
+    logger.error('Delete account error:', error);
+    sendError(res, 'Failed to delete account', 500);
   }
 };

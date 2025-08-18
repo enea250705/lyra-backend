@@ -18,6 +18,7 @@ import googleFitRoutes from './googleFitRoutes';
 import calendarRoutes from './calendarRoutes';
 import savingsRoutes from './savingsRoutes';
 import plaidRoutes from './plaidRoutes';
+import dataRoutes from './dataRoutes';
 
 const router = Router();
 
@@ -39,5 +40,6 @@ router.use('/google-fit', googleFitRoutes);
 router.use('/calendar', calendarRoutes);
 router.use('/savings', savingsRoutes);
 router.use('/plaid', plaidRoutes);
+router.use('/data', dataRoutes);
 
 export default router;

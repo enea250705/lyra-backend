@@ -6,6 +6,7 @@ import {
   logout,
   getProfile,
   updateProfile,
+  deleteAccount,
 } from '../controllers/authController';
 import {
   getGoogleAuthUrl,
@@ -161,6 +162,20 @@ router.get('/profile', authenticate, getProfile);
  *         description: Profile updated successfully
  */
 router.put('/profile', authenticate, updateProfile);
+
+/**
+ * @swagger
+ * /api/v1/auth/delete-account:
+ *   delete:
+ *     tags: [Authentication]
+ *     summary: Permanently delete the authenticated user's account and associated data
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully
+ */
+router.delete('/delete-account', authenticate, deleteAccount);
 
 /**
  * @swagger
