@@ -34,6 +34,7 @@ import chatRoutes from './routes/chatRoutes';
 import plaidRoutes from './routes/plaidRoutes';
 import savingsRoutes from './routes/savingsRoutes';
 import pushRoutes from './routes/pushRoutes';
+import googleFitRoutes from './routes/googleFitRoutes';
 
 const app = express();
 
@@ -133,6 +134,7 @@ apiRouter.use('/intervention', interventionRoutes);
 apiRouter.use('/chat', chatRoutes);
 apiRouter.use('/plaid', plaidRoutes);
 apiRouter.use('/savings', savingsRoutes);
+apiRouter.use('/google-fit', googleFitRoutes);
 
 app.use(`/api/${config.apiVersion}`, apiRouter);
 
