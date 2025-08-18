@@ -44,9 +44,16 @@ PushDevice.init(
       unique: true,
     },
     platform: {
-      type: DataTypes.ENUM('ios', 'android', 'unknown'),
+      type: DataTypes.STRING(16),
       allowNull: false,
       defaultValue: 'unknown',
+      validate: {
+        isIn: [[
+          'ios',
+          'android',
+          'unknown'
+        ]]
+      }
     },
     deviceModel: {
       type: DataTypes.STRING(120),
