@@ -71,7 +71,7 @@ User.init(
       allowNull: true,
     },
     refreshToken: {
-      type: DataTypes.STRING(500),
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     createdAt: {
