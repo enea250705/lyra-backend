@@ -25,7 +25,9 @@
     "analytics:behavior": "ts-node src/scripts/analytics-cli.ts behavior-insights",
     "analytics:dashboard": "ts-node src/scripts/analytics-cli.ts dashboard",
     "analytics:chart": "ts-node src/scripts/analytics-cli.ts chart",
-    "analytics:track": "ts-node src/scripts/analytics-cli.ts track-behavior"
+    "analytics:track": "ts-node src/scripts/analytics-cli.ts track-behavior",
+    "db:cleanup": "ts-node src/scripts/db-cli.ts db cleanup",
+    "db:migrate:safe": "ts-node src/scripts/run-migrations.ts"
   },
   "keywords": [
     "ai",

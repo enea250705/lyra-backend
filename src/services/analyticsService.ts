@@ -13,7 +13,6 @@ export interface AnalyticsFilters {
   userId?: string;
   startDate?: Date;
   endDate?: Date;
-  featureName?: string;
   eventType?: string;
   reportType?: string;
 }
@@ -28,7 +27,7 @@ export interface UserEngagementMetrics {
 }
 
 export interface FeatureUsageMetrics {
-  featureName: string;
+  eventType: string;
   totalUsers: number;
   activeUsers: number;
   usageCount: number;
@@ -128,11 +127,11 @@ export class AnalyticsService {
     const usedFeatures = await UsageAnalytics.findAll({
       where: {
         userId,
-        featureName: { [Op.in]: features },
+        eventType: { [Op.in]: features },
         createdAt: { [Op.gte]: startDate },
       },
-      attributes: ['featureName'],
-      group: ['featureName'],
+      attributes: ['eventType'],
+      group: ['eventType'],
     });
     const featureAdoptionRate = usedFeatures.length / features.length * 100;
 
@@ -149,11 +148,11 @@ export class AnalyticsService {
   /**
    * Get feature usage metrics
    */
-  static async getFeatureUsageMetrics(featureName?: string, days: number = 30): Promise<FeatureUsageMetrics[]> {
+  static async getFeatureUsageMetrics(eventType?: string, days: number = 30): Promise<FeatureUsageMetrics[]> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const features = featureName ? [featureName] : 
+    const features = eventType ? [eventType] : 
       ['mood', 'energy', 'sleep', 'focus', 'journal', 'calendar', 'finance'];
 
     const metrics: FeatureUsageMetrics[] = [];
@@ -161,7 +160,7 @@ export class AnalyticsService {
     for (const feature of features) {
       // Get total users who used this feature
       const totalUsers = await UsageAnalytics.count({
-        where: { featureName: feature },
+        where: { eventType: feature },
         distinct: true,
         col: 'userId',
       });
@@ -169,7 +168,7 @@ export class AnalyticsService {
       // Get active users (used in last period)
       const activeUsers = await UsageAnalytics.count({
         where: {
-          featureName: feature,
+          eventType: feature,
           createdAt: { [Op.gte]: startDate },
         },
         distinct: true,
@@ -179,14 +178,14 @@ export class AnalyticsService {
       // Get usage count
       const usageCount = await UsageAnalytics.count({
         where: {
-          featureName: feature,
+          eventType: feature,
           createdAt: { [Op.gte]: startDate },
         },
       });
 
       // Get last used date
       const lastUsed = await UsageAnalytics.findOne({
-        where: { featureName: feature },
+        where: { eventType: feature },
         order: [['createdAt', 'DESC']],
         attributes: ['createdAt'],
       });
@@ -197,7 +196,7 @@ export class AnalyticsService {
       
       const previousPeriodUsers = await UsageAnalytics.count({
         where: {
-          featureName: feature,
+          eventType: feature,
           createdAt: { 
             [Op.between]: [previousPeriodStart, startDate]
           },
@@ -209,7 +208,7 @@ export class AnalyticsService {
       // Get users who used feature in previous period
       const previousUsers = await UsageAnalytics.findAll({
         where: {
-          featureName: feature,
+          eventType: feature,
           createdAt: { 
             [Op.between]: [previousPeriodStart, startDate]
           },
@@ -221,7 +220,7 @@ export class AnalyticsService {
       // Get users who used feature in current period
       const currentUsers = await UsageAnalytics.findAll({
         where: {
-          featureName: feature,
+          eventType: feature,
           createdAt: { [Op.gte]: startDate },
         },
         attributes: ['userId'],
@@ -237,7 +236,7 @@ export class AnalyticsService {
         (retainedUsers / previousPeriodUsers) * 100 : 0;
 
       metrics.push({
-        featureName: feature,
+        eventType: feature,
         totalUsers,
         activeUsers,
         usageCount,
@@ -519,7 +518,7 @@ export class AnalyticsService {
         return {
           type: 'bar',
           data: featureUsage.map(feature => ({
-            x: feature.featureName,
+            x: feature.eventType,
             y: feature.activeUsers,
           })),
         };

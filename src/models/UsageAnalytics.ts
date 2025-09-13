@@ -5,9 +5,11 @@ import User from './User';
 interface UsageAnalyticsAttributes {
   id: string;
   userId: string;
-  featureName: string;
-  action: string;
-  metadata?: any;
+  eventType: string;
+  eventData?: any;
+  sessionId?: string;
+  ipAddress?: string;
+  userAgent?: string;
   createdAt: Date;
 }
 
@@ -16,9 +18,11 @@ interface UsageAnalyticsCreationAttributes extends Optional<UsageAnalyticsAttrib
 class UsageAnalytics extends Model<UsageAnalyticsAttributes, UsageAnalyticsCreationAttributes> implements UsageAnalyticsAttributes {
   public id!: string;
   public userId!: string;
-  public featureName!: string;
-  public action!: string;
-  public metadata?: any;
+  public eventType!: string;
+  public eventData?: any;
+  public sessionId?: string;
+  public ipAddress?: string;
+  public userAgent?: string;
   public createdAt!: Date;
 }
 
@@ -32,22 +36,36 @@ UsageAnalytics.init(
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: 'user_id',
       references: {
         model: User,
         key: 'id',
       },
     },
-    featureName: {
+    eventType: {
       type: DataTypes.STRING(100),
       allowNull: false,
+      field: 'event_type',
     },
-    action: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-    },
-    metadata: {
+    eventData: {
       type: DataTypes.JSONB,
       allowNull: true,
+      field: 'event_data',
+    },
+    sessionId: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'session_id',
+    },
+    ipAddress: {
+      type: DataTypes.INET,
+      allowNull: true,
+      field: 'ip_address',
+    },
+    userAgent: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'user_agent',
     },
     createdAt: {
       type: DataTypes.DATE,

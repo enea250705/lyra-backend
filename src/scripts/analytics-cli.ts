@@ -101,7 +101,7 @@ program
       console.log('\n📈 Metrics:');
       
       metrics.forEach(metric => {
-        console.log(`\n${metric.featureName.toUpperCase()}:`);
+        console.log(`\n${metric.eventType.toUpperCase()}:`);
         console.log(`  Total Users: ${metric.totalUsers}`);
         console.log(`  Active Users: ${metric.activeUsers}`);
         console.log(`  Usage Count: ${metric.usageCount}`);

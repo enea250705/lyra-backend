@@ -20,6 +20,10 @@ class MigrationRunner {
     });
   }
 
+  getSequelize(): Sequelize {
+    return this.sequelize;
+  }
+
   async runMigrations(): Promise<void> {
     try {
       logger.info('Starting database migrations...');

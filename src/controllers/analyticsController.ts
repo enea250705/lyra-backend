@@ -12,23 +12,27 @@ import logger from '../utils/logger';
 export const trackEvent = async (req: Request, res: Response): Promise<void> => {
   try {
     const authReq = req as AuthenticatedRequest;
-    const { featureName, action, metadata } = req.body;
+    const { eventType, eventData, sessionId, ipAddress, userAgent } = req.body;
     const userId = authReq.user!.id;
 
     const analytics = await UsageAnalytics.create({
       userId,
-      featureName,
-      action,
-      metadata,
+      eventType,
+      eventData,
+      sessionId,
+      ipAddress,
+      userAgent,
     });
 
-    logger.info(`Analytics event tracked: ${featureName}/${action} for user: ${userId}`);
+    logger.info(`Analytics event tracked: ${eventType} for user: ${userId}`);
 
     sendSuccess(res, {
       id: analytics.id,
-      featureName: analytics.featureName,
-      action: analytics.action,
-      metadata: analytics.metadata,
+      eventType: analytics.eventType,
+      eventData: analytics.eventData,
+      sessionId: analytics.sessionId,
+      ipAddress: analytics.ipAddress,
+      userAgent: analytics.userAgent,
       createdAt: analytics.createdAt,
     }, 'Event tracked successfully', 201);
   } catch (error) {
@@ -72,7 +76,7 @@ export const getUserAnalytics = async (req: Request, res: Response): Promise<voi
     };
 
     if (feature) {
-      whereClause.featureName = feature;
+      whereClause.eventType = feature;
     }
 
     const analytics = await UsageAnalytics.findAll({
@@ -82,11 +86,11 @@ export const getUserAnalytics = async (req: Request, res: Response): Promise<voi
 
     // Aggregate data by feature
     const featureUsage: { [key: string]: number } = {};
-    const actionCounts: { [key: string]: number } = {};
+    const eventTypeCounts: { [key: string]: number } = {};
 
     analytics.forEach(event => {
-      featureUsage[event.featureName] = (featureUsage[event.featureName] || 0) + 1;
-      actionCounts[event.action] = (actionCounts[event.action] || 0) + 1;
+      featureUsage[event.eventType] = (featureUsage[event.eventType] || 0) + 1;
+      eventTypeCounts[event.eventType] = (eventTypeCounts[event.eventType] || 0) + 1;
     });
 
     const mostUsedFeature = Object.keys(featureUsage).reduce((a, b) => 
@@ -97,13 +101,15 @@ export const getUserAnalytics = async (req: Request, res: Response): Promise<voi
       period,
       totalEvents: analytics.length,
       featureUsage,
-      actionCounts,
+      eventTypeCounts,
       mostUsedFeature,
       events: analytics.map(event => ({
         id: event.id,
-        featureName: event.featureName,
-        action: event.action,
-        metadata: event.metadata,
+        eventType: event.eventType,
+        eventData: event.eventData,
+        sessionId: event.sessionId,
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
         createdAt: event.createdAt,
       })),
     }, 'User analytics retrieved successfully');
@@ -123,12 +129,12 @@ export const getFeatureAdoption = async (req: Request, res: Response): Promise<v
 
     for (const feature of features) {
       const lastEvent = await UsageAnalytics.findOne({
-        where: { userId, featureName: feature },
+        where: { userId, eventType: feature },
         order: [['createdAt', 'DESC']],
       });
 
       const usageCount = await UsageAnalytics.count({
-        where: { userId, featureName: feature },
+        where: { userId, eventType: feature },
       });
 
       adoption[feature] = {
@@ -192,10 +198,10 @@ export const getUserEngagement = async (req: Request, res: Response): Promise<vo
 export const getFeatureUsage = async (req: Request, res: Response): Promise<void> => {
   try {
     const authReq = req as AuthenticatedRequest;
-    const { featureName, days = 30 } = req.query;
+    const { eventType, days = 30 } = req.query;
 
     const metrics = await AnalyticsService.getFeatureUsageMetrics(
-      featureName as string,
+      eventType as string,
       parseInt(days as string)
     );
 

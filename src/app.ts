@@ -167,9 +167,25 @@ const startServer = async () => {
     await sequelize.authenticate();
     logger.info('Database connected successfully');
     
+    // Use safe migration approach instead of force sync
     if (config.env === 'development') {
-      await sequelize.sync({ force: true, alter: true });
-      logger.info('Database synchronized (tables recreated)');
+      // Clean up orphaned records first
+      const { QueryTypes } = require('sequelize');
+      
+      // Check if usage_analytics table exists and clean orphaned records
+      const tables = await sequelize.getQueryInterface().showAllTables();
+      const hasUsageAnalytics = tables.some(table => table === 'usage_analytics');
+      
+      if (hasUsageAnalytics) {
+        await sequelize.query(`
+          DELETE FROM usage_analytics 
+          WHERE user_id NOT IN (SELECT id FROM users)
+        `, { type: QueryTypes.DELETE });
+        logger.info('Cleaned up orphaned usage_analytics records');
+      }
+      
+      await sequelize.sync({ alter: true });
+      logger.info('Database synchronized with safe migration');
     }
 
     // Optional safe schema sync in non-development environments for additive changes (e.g., new tables)

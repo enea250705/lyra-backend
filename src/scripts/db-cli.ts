@@ -248,6 +248,70 @@ notificationCmd
     }
   });
 
+// Cleanup command
+dbCmd
+  .command('cleanup')
+  .description('Clean up orphaned records from all tables')
+  .action(async () => {
+    try {
+      const runner = new MigrationRunner();
+      const sequelize = runner.getSequelize();
+      
+      logger.info('Starting database cleanup...');
+
+      // Get all tables
+      const tables = await sequelize.getQueryInterface().showAllTables();
+      logger.info('Found tables:', tables);
+
+      // Clean up orphaned records from all tables that reference users
+      const tablesWithUserReferences = [
+        { table: 'usage_analytics', column: 'user_id' },
+        { table: 'subscriptions', column: 'user_id' },
+        { table: 'mood_entries', column: 'user_id' },
+        { table: 'sleep_logs', column: 'user_id' },
+        { table: 'energy_entries', column: 'user_id' },
+        { table: 'focus_sessions', column: 'user_id' },
+        { table: 'journal_entries', column: 'user_id' },
+        { table: 'daily_checkins', column: 'user_id' },
+        { table: 'chat_messages', column: 'user_id' },
+        { table: 'notifications', column: 'user_id' },
+        { table: 'notification_settings', column: 'user_id' },
+        { table: 'user_settings', column: 'user_id' },
+        { table: 'savings_records', column: 'user_id' },
+        { table: 'user_behaviors', column: 'userId' },
+        { table: 'analytics_reports', column: 'userId' },
+        { table: 'onboarding_steps', column: 'userId' },
+        { table: 'permission_requests', column: 'userId' },
+        { table: 'feature_tutorials', column: 'userId' }
+      ];
+
+      let totalCleaned = 0;
+      for (const { table, column } of tablesWithUserReferences) {
+        if (tables.includes(table)) {
+          try {
+            const result = await sequelize.query(`
+              DELETE FROM ${table} 
+              WHERE ${column} NOT IN (SELECT id FROM users)
+            `);
+            const cleaned = Array.isArray(result) && result.length > 1 ? result[1] : 0;
+            const cleanedCount = typeof cleaned === 'number' ? cleaned : 0;
+            totalCleaned += cleanedCount;
+            logger.info(`Cleaned up ${cleanedCount} orphaned records from ${table} table`);
+          } catch (error) {
+            logger.warn(`Could not clean ${table}: ${error.message}`);
+          }
+        }
+      }
+
+      await runner.close();
+      logger.info(`Database cleanup completed successfully. Total records cleaned: ${totalCleaned}`);
+      process.exit(0);
+    } catch (error) {
+      logger.error('Database cleanup failed:', error);
+      process.exit(1);
+    }
+  });
+
 // Help command
 program
   .command('help')
@@ -267,6 +331,7 @@ Available commands:
   
   db reset            - Reset database (rollback all)
   db fresh            - Fresh setup (reset + migrate + seed)
+  db cleanup          - Clean up orphaned records
   
   notifications test  - Test notification system
   notifications schedule - Schedule a notification
