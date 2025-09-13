@@ -172,16 +172,42 @@ const startServer = async () => {
       // Clean up orphaned records first
       const { QueryTypes } = require('sequelize');
       
-      // Check if usage_analytics table exists and clean orphaned records
+      // Get all tables and clean orphaned records from all user-referencing tables
       const tables = await sequelize.getQueryInterface().showAllTables();
-      const hasUsageAnalytics = tables.some(table => table === 'usage_analytics');
+      const userReferencingTables = [
+        'usage_analytics', 'emotion_insights', 'subscriptions', 'mood_entries', 
+        'sleep_logs', 'energy_entries', 'focus_sessions', 'journal_entries',
+        'daily_checkins', 'chat_messages', 'notifications', 'notification_settings',
+        'user_settings', 'savings_records', 'google_fit_connections', 'google_fit_steps',
+        'google_fit_heart_rates', 'google_fit_activities', 'google_fit_sleep',
+        'google_fit_weights', 'google_fit_sync_status', 'calendar_connections',
+        'calendar_events', 'bank_connections', 'transactions', 'spending_limits',
+        'blocked_merchants', 'spending_alerts', 'savings_tracking', 'savings_entries',
+        'push_devices'
+      ];
       
-      if (hasUsageAnalytics) {
-        await sequelize.query(`
-          DELETE FROM usage_analytics 
-          WHERE user_id NOT IN (SELECT id FROM users)
-        `, { type: QueryTypes.DELETE });
-        logger.info('Cleaned up orphaned usage_analytics records');
+      let totalCleaned = 0;
+      for (const table of userReferencingTables) {
+        if (tables.includes(table)) {
+          try {
+            const result = await sequelize.query(`
+              DELETE FROM ${table} 
+              WHERE user_id NOT IN (SELECT id FROM users)
+            `, { type: QueryTypes.DELETE });
+            const cleaned = Array.isArray(result) && result.length > 1 ? result[1] : 0;
+            const cleanedCount = typeof cleaned === 'number' ? cleaned : 0;
+            totalCleaned += cleanedCount;
+            if (cleanedCount > 0) {
+              logger.info(`Cleaned up ${cleanedCount} orphaned records from ${table} table`);
+            }
+          } catch (error) {
+            logger.warn(`Could not clean ${table}: ${error.message}`);
+          }
+        }
+      }
+      
+      if (totalCleaned > 0) {
+        logger.info(`Total orphaned records cleaned: ${totalCleaned}`);
       }
       
       await sequelize.sync({ alter: true });
@@ -190,6 +216,47 @@ const startServer = async () => {
 
     // Optional safe schema sync in non-development environments for additive changes (e.g., new tables)
     if (config.env !== 'development' && process.env.DB_SYNC_ALTER === 'true') {
+      // Clean up orphaned records in production too
+      const { QueryTypes } = require('sequelize');
+      
+      const userReferencingTables = [
+        'usage_analytics', 'emotion_insights', 'subscriptions', 'mood_entries', 
+        'sleep_logs', 'energy_entries', 'focus_sessions', 'journal_entries',
+        'daily_checkins', 'chat_messages', 'notifications', 'notification_settings',
+        'user_settings', 'savings_records', 'google_fit_connections', 'google_fit_steps',
+        'google_fit_heart_rates', 'google_fit_activities', 'google_fit_sleep',
+        'google_fit_weights', 'google_fit_sync_status', 'calendar_connections',
+        'calendar_events', 'bank_connections', 'transactions', 'spending_limits',
+        'blocked_merchants', 'spending_alerts', 'savings_tracking', 'savings_entries',
+        'push_devices'
+      ];
+      
+      const tables = await sequelize.getQueryInterface().showAllTables();
+      let totalCleaned = 0;
+      
+      for (const table of userReferencingTables) {
+        if (tables.includes(table)) {
+          try {
+            const result = await sequelize.query(`
+              DELETE FROM ${table} 
+              WHERE user_id NOT IN (SELECT id FROM users)
+            `, { type: QueryTypes.DELETE });
+            const cleaned = Array.isArray(result) && result.length > 1 ? result[1] : 0;
+            const cleanedCount = typeof cleaned === 'number' ? cleaned : 0;
+            totalCleaned += cleanedCount;
+            if (cleanedCount > 0) {
+              logger.info(`Cleaned up ${cleanedCount} orphaned records from ${table} table`);
+            }
+          } catch (error) {
+            logger.warn(`Could not clean ${table}: ${error.message}`);
+          }
+        }
+      }
+      
+      if (totalCleaned > 0) {
+        logger.info(`Total orphaned records cleaned: ${totalCleaned}`);
+      }
+      
       await sequelize.sync({ alter: true });
       logger.info('Database schema synchronized with alter=true');
     }
