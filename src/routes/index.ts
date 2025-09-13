@@ -19,6 +19,12 @@ import calendarRoutes from './calendarRoutes';
 import savingsRoutes from './savingsRoutes';
 import plaidRoutes from './plaidRoutes';
 import dataRoutes from './dataRoutes';
+import onboardingRoutes from './onboardingRoutes';
+import chatRoutes from './chatRoutes';
+import subscriptionRoutes from './subscriptionRoutes';
+import interventionRoutes from './interventionRoutes';
+import pushRoutes from './pushRoutes';
+import webhookRoutes from './webhookRoutes';
 
 const router = Router();
 
@@ -41,5 +47,11 @@ router.use('/calendar', calendarRoutes);
 router.use('/savings', savingsRoutes);
 router.use('/plaid', plaidRoutes);
 router.use('/data', dataRoutes);
+router.use('/onboarding', onboardingRoutes);
+router.use('/chat', chatRoutes);
+router.use('/subscription', subscriptionRoutes);
+router.use('/intervention', interventionRoutes);
+router.use('/push', pushRoutes);
+router.use('/webhook', webhookRoutes);
 
 export default router;

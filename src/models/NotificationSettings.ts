@@ -13,6 +13,12 @@ interface NotificationSettingsAttributes {
   sleepReminderTime: string;
   financeReminder: boolean;
   financeReminderFrequency: string;
+  preferences?: any;
+  globalEnabled?: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+  maxNotificationsPerDay?: number;
+  priorityLevel?: string;
   createdAt: Date;
 }
 
@@ -29,6 +35,12 @@ class NotificationSettings extends Model<NotificationSettingsAttributes, Notific
   public sleepReminderTime!: string;
   public financeReminder!: boolean;
   public financeReminderFrequency!: string;
+  public preferences?: any;
+  public globalEnabled?: boolean;
+  public quietHoursStart?: string;
+  public quietHoursEnd?: string;
+  public maxNotificationsPerDay?: number;
+  public priorityLevel?: string;
   public createdAt!: Date;
 }
 
@@ -78,6 +90,30 @@ NotificationSettings.init(
     financeReminderFrequency: {
       type: DataTypes.STRING(20),
       defaultValue: 'daily',
+    },
+    preferences: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    globalEnabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+    quietHoursStart: {
+      type: DataTypes.TIME,
+      defaultValue: '22:00',
+    },
+    quietHoursEnd: {
+      type: DataTypes.TIME,
+      defaultValue: '08:00',
+    },
+    maxNotificationsPerDay: {
+      type: DataTypes.INTEGER,
+      defaultValue: 10,
+    },
+    priorityLevel: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'normal',
     },
     createdAt: {
       type: DataTypes.DATE,
