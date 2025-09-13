@@ -264,6 +264,7 @@ const startServer = async () => {
     app.listen(config.port, () => {
       logger.info(`Server running on port ${config.port}`);
       logger.info(`API documentation available at http://localhost:${config.port}/api/docs`);
+      logger.info('Database schema fixed - refresh_token now TEXT type');
     });
   } catch (error) {
     logger.error('Unable to start server:', error);
