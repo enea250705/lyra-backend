@@ -15,3 +15,4 @@ export const down = async (queryInterface: QueryInterface): Promise<void> => {
     allowNull: true,
   });
 };
+

@@ -48,3 +48,4 @@ UNION ALL
 SELECT 'usage_analytics' as table_name, COUNT(*) as orphaned_records FROM usage_analytics WHERE user_id NOT IN (SELECT id FROM users)
 UNION ALL
 SELECT 'subscriptions' as table_name, COUNT(*) as orphaned_records FROM subscriptions WHERE user_id NOT IN (SELECT id FROM users);
+

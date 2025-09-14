@@ -74,3 +74,4 @@ export const down = async (queryInterface: QueryInterface): Promise<void> => {
     throw error;
   }
 };
+
