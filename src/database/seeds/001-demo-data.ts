@@ -120,7 +120,7 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
       date.setDate(date.getDate() - i);
       
       for (const userId of userIds) {
-        const moodValue = Math.floor(Math.random() * 5) + 3; // Random mood between 3-7
+        const moodValue = Math.floor(Math.random() * 10) + 1; // Random mood between 1-10
         const categories = ['happy', 'neutral', 'stressed', 'energetic', 'calm'];
         const category = categories[Math.floor(Math.random() * categories.length)];
         
@@ -151,7 +151,7 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
         wakeTime.setHours(bedtime.getHours() + 7 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 60), 0, 0);
         
         const sleepDuration = (wakeTime.getTime() - bedtime.getTime()) / (1000 * 60 * 60);
-        const sleepQuality = Math.floor(Math.random() * 5) + 3; // Random quality between 3-7
+        const sleepQuality = Math.floor(Math.random() * 10) + 1; // Random quality between 1-10
         
         sleepLogs.push({
           id: uuidv4(),
@@ -182,7 +182,7 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
       date.setDate(date.getDate() - i);
       
       for (const userId of userIds) {
-        const energyLevel = Math.floor(Math.random() * 5) + 3; // Random energy between 3-7
+        const energyLevel = Math.floor(Math.random() * 10) + 1; // Random energy between 1-10
         
         energyEntries.push({
           id: uuidv4(),
@@ -217,7 +217,7 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
       
       for (const userId of userIds) {
         const title = journalTitles[Math.floor(Math.random() * journalTitles.length)];
-        const mood = Math.floor(Math.random() * 5) + 3;
+        const mood = Math.floor(Math.random() * 10) + 1;
         
         journalEntries.push({
           id: uuidv4(),
@@ -241,8 +241,8 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
       date.setDate(date.getDate() - i);
       
       for (const userId of userIds) {
-        const mood = Math.floor(Math.random() * 5) + 3;
-        const energy = Math.floor(Math.random() * 5) + 3;
+        const mood = Math.floor(Math.random() * 10) + 1;
+        const energy = Math.floor(Math.random() * 10) + 1;
         const sleepHours = 6 + Math.random() * 3; // Random sleep between 6-9 hours
         
         dailyCheckins.push({
@@ -363,7 +363,7 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
         trigger_type: triggerType,
         metadata: JSON.stringify({
           location: 'Sample Location',
-          mood_at_time: Math.floor(Math.random() * 5) + 3,
+          mood_at_time: Math.floor(Math.random() * 10) + 1,
           weather: 'sunny'
         }),
         created_at: date,

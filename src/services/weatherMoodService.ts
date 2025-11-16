@@ -496,14 +496,29 @@ class WeatherMoodService {
     recommendations: string[];
   }> {
     try {
+      logger.info(`[WeatherMoodService] Getting comprehensive data for user ${userId} at ${lat}, ${lon} with mood ${currentMood}`);
+      
       // Get all data in parallel
       const [weather, nearbyStores] = await Promise.all([
-        this.getWeatherData(lat, lon),
-        this.detectNearbyExpensiveStores(lat, lon)
+        this.getWeatherData(lat, lon).catch(error => {
+          logger.error('[WeatherMoodService] Weather API failed:', error);
+          throw error;
+        }),
+        this.detectNearbyExpensiveStores(lat, lon).catch(error => {
+          logger.error('[WeatherMoodService] Nearby stores API failed:', error);
+          throw error;
+        })
       ]);
 
+      logger.info('[WeatherMoodService] Successfully got weather and nearby stores data');
+
       const moodCorrelation = this.correlateMoodWithWeather(currentMood, weather);
-      const sleepAdjustment = await this.adjustSleepTrackingForTimezone(userId, lat, lon, {});
+      const sleepAdjustment = await this.adjustSleepTrackingForTimezone(userId, lat, lon, {}).catch(error => {
+        logger.error('[WeatherMoodService] Sleep adjustment failed:', error);
+        throw error;
+      });
+
+      logger.info('[WeatherMoodService] Successfully processed mood correlation and sleep adjustment');
 
       // Generate comprehensive recommendations
       const recommendations = [
@@ -511,6 +526,8 @@ class WeatherMoodService {
         ...this.generateStoreRecommendations(nearbyStores),
         ...this.generateSleepRecommendations(sleepAdjustment, weather)
       ];
+
+      logger.info('[WeatherMoodService] Successfully generated comprehensive data');
 
       return {
         weather,
@@ -520,7 +537,7 @@ class WeatherMoodService {
         recommendations: [...new Set(recommendations)]
       };
     } catch (error) {
-      logger.error('Error getting comprehensive location mood data:', error);
+      logger.error('[WeatherMoodService] Error getting comprehensive location mood data:', error);
       throw new Error('Failed to get comprehensive data');
     }
   }

@@ -97,6 +97,15 @@ class Subscription extends Model<SubscriptionAttributes, SubscriptionCreationAtt
   }
 
   public canAccessFeature(feature: string): boolean {
+    // 🚀 LAUNCH VERSION - All features are FREE!
+    // This will be updated when subscription plans are introduced
+    const isLaunchVersion = true; // Set to false when enabling subscriptions
+    
+    if (isLaunchVersion) {
+      return true; // Everyone has access to all features during launch
+    }
+    
+    // Original feature access logic (will be used post-launch)
     const premiumFeatures = [
       'location_alerts',
       'sleep_correlation',

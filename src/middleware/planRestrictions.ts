@@ -46,6 +46,13 @@ export const attachSubscription = async (
 
 export const requirePlan = (requiredPlan: 'pro' | 'premium') => {
   return (req: RequestWithSubscription, res: Response, next: NextFunction) => {
+    // 🚀 LAUNCH VERSION - All plans are free, skip restrictions
+    const isLaunchVersion = true; // Set to false when enabling subscriptions
+    
+    if (isLaunchVersion) {
+      return next(); // Skip all plan checks during launch
+    }
+    
     const subscription = req.subscription;
 
     if (!subscription) {
@@ -68,6 +75,13 @@ export const requirePlan = (requiredPlan: 'pro' | 'premium') => {
 
 export const requireFeature = (featureId: string) => {
   return (req: RequestWithSubscription, res: Response, next: NextFunction) => {
+    // 🚀 LAUNCH VERSION - All features are free, skip restrictions
+    const isLaunchVersion = true; // Set to false when enabling subscriptions
+    
+    if (isLaunchVersion) {
+      return next(); // Skip all feature checks during launch
+    }
+    
     const subscription = req.subscription;
 
     if (!subscription) {
@@ -106,6 +120,13 @@ export const checkDataRetention = (req: RequestWithSubscription, res: Response, 
 
 export const checkLimits = (limitType: 'goals' | 'notifications' | 'interventions') => {
   return async (req: RequestWithSubscription, res: Response, next: NextFunction) => {
+    // 🚀 LAUNCH VERSION - No limits during launch, everyone has unlimited
+    const isLaunchVersion = true; // Set to false when enabling subscriptions
+    
+    if (isLaunchVersion) {
+      return next(); // Skip all limit checks during launch
+    }
+    
     const subscription = req.subscription;
 
     if (!subscription) {
@@ -157,6 +178,13 @@ export const checkLimits = (limitType: 'goals' | 'notifications' | 'intervention
 
 // Helper function to check if user has access to a feature
 export const hasFeatureAccess = (subscription: Subscription | null, featureId: string): boolean => {
+  // 🚀 LAUNCH VERSION - Everyone has access to all features
+  const isLaunchVersion = true; // Set to false when enabling subscriptions
+  
+  if (isLaunchVersion) {
+    return true; // Everyone has access during launch
+  }
+  
   if (!subscription) {
     return false;
   }
