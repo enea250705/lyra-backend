@@ -8,10 +8,14 @@ import googleCalendarService from '../services/googleCalendarService';
 import { AuthenticatedRequest } from '../types';
 import logger from '../utils/logger';
 
+// Use configurable redirect URI so it works for mobile deep-links / Expo proxy
+// Set GOOGLE_REDIRECT_URI in env, e.g.:
+// - Production (custom scheme): myapp:/oauthredirect
+// - Expo proxy (dev): https://auth.expo.io/@your-username/lyra-personal-life-operating-system
 const oauth2Client = new google.auth.OAuth2(
   config.google.clientId,
   config.google.clientSecret,
-  'http://localhost:3000/auth/google/callback'
+  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
 );
 
 export const getGoogleAuthUrl = async (req: Request, res: Response): Promise<void> => {
